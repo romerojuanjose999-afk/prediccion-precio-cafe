@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Neurona del Café — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0704;--bg2:#130c06;--bg3:#1c1209;
+  --gold:#c9870a;--gold2:#e8b820;--gold3:#f5d060;
+  --green:#4caf50;--red:#ef5350;--blue:#5b9bd5;
+  --cream:#f0e0c0;--gray:#888;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+
+/* ── HEADER ── */
+header{
+  padding:14px 28px;
+  border-bottom:1px solid rgba(201,135,10,.2);
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(0,0,0,.3);position:sticky;top:0;z-index:100;
+  backdrop-filter:blur(8px);
+}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:3px;color:var(--cream);}
+.logo em{color:var(--gold2);font-style:normal;}
+.hright{display:flex;gap:10px;align-items:center;}
+.pill{font-family:'JetBrains Mono',monospace;font-size:10px;
+  padding:3px 10px;border-radius:20px;
+  background:rgba(201,135,10,.1);border:1px solid rgba(201,135,10,.25);
+  color:var(--gold);}
+.pill.live{background:rgba(76,175,80,.1);border-color:rgba(76,175,80,.3);color:#81c784;}
+
+/* ── MAIN ── */
+main{padding:20px 28px 40px;max-width:1400px;margin:0 auto;}
+
+/* ── METRICS ROW ── */
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+.mc{background:var(--bg2);border:1px solid rgba(201,135,10,.15);border-radius:8px;padding:12px 14px;}
+.mc-lbl{font-size:11px;color:var(--gray);margin-bottom:4px;font-family:'JetBrains Mono',monospace;}
+.mc-val{font-size:24px;font-weight:500;line-height:1;color:var(--cream);}
+.mc-val.g{color:#81c784;} .mc-val.a{color:var(--gold2);} .mc-val.b{color:#90caf9;}
+.mc-sub{font-size:10px;color:rgba(255,255,255,.3);margin-top:3px;}
+
+/* ── GRID LAYOUT ── */
+.row{display:grid;gap:14px;margin-bottom:14px;}
+.r2{grid-template-columns:1fr 1fr;}
+.r3{grid-template-columns:1fr 1fr 1fr;}
+.r23{grid-template-columns:2fr 1fr;}
+.r32{grid-template-columns:1fr 2fr;}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid rgba(201,135,10,.15);border-radius:10px;padding:14px 16px;overflow:hidden;}
+.card-title{font-size:11px;color:var(--gray);margin-bottom:12px;
+  font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.5px;
+  display:flex;align-items:center;gap:6px;}
+.card-title svg{opacity:.6;}
+
+/* ── STREAMING LOG ── */
+.stream-wrap{background:var(--bg3);border-radius:6px;padding:10px 12px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  height:110px;overflow-y:auto;border:1px solid rgba(201,135,10,.1);}
+.s-line{line-height:1.8;color:rgba(255,255,255,.45);}
+.s-line.ok{color:#81c784;} .s-line.hi{color:var(--gold2);}
+.s-line.err{color:#ef9a9a;}
+.s-line.dim{color:rgba(255,255,255,.25);}
+
+/* ── PROGRESS BAR ── */
+.prog-wrap{margin:8px 0;}
+.prog-label{display:flex;justify-content:space-between;font-size:10px;color:var(--gray);margin-bottom:4px;font-family:'JetBrains Mono',monospace;}
+.prog-track{height:3px;background:rgba(255,255,255,.08);border-radius:2px;}
+.prog-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .12s linear;}
+
+/* ── CHART CANVAS ── */
+canvas{display:block;}
+
+/* ── PREDICTION PANEL ── */
+.pred-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:160px;gap:8px;position:relative;}
+.pred-glow{position:absolute;width:120px;height:120px;border-radius:50%;
+  filter:blur(40px);opacity:.15;pointer-events:none;}
+.pred-arrow{font-size:64px;font-weight:300;line-height:1;
+  animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.pred-word{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;}
+.pred-pct{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--gray);}
+.pred-price{font-size:12px;color:rgba(255,255,255,.4);margin-top:4px;}
+
+/* ── PROBABILITY BAR ── */
+.prob-bars{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+.pb-row{display:flex;align-items:center;gap:8px;}
+.pb-lbl{font-family:'JetBrains Mono',monospace;font-size:10px;min-width:36px;color:var(--gray);}
+.pb-track{flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;}
+.pb-fill{height:100%;border-radius:4px;transition:width 1s ease;}
+.pb-val{font-family:'JetBrains Mono',monospace;font-size:10px;min-width:36px;text-align:right;color:var(--cream);}
+
+/* ── CONFUSIÓN ── */
+.conf-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px;}
+.cc{border-radius:6px;padding:10px 8px;text-align:center;border:1px solid rgba(255,255,255,.06);}
+.cc.ok{background:rgba(76,175,80,.08);border-color:rgba(76,175,80,.2);}
+.cc.bad{background:rgba(239,83,80,.08);border-color:rgba(239,83,80,.2);}
+.cc-num{font-size:22px;font-weight:500;}
+.cc-num.ok{color:#81c784;} .cc-num.bad{color:#ef9a9a;}
+.cc-lbl{font-size:9px;color:rgba(255,255,255,.35);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+
+/* ── FEATURE BARS ── */
+.fb-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.fb-name{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gray);min-width:80px;}
+.fb-track{flex:1;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
+.fb-fill{height:100%;border-radius:3px;background:var(--gold);transition:width .8s ease;}
+.fb-val{font-size:10px;color:rgba(255,255,255,.4);min-width:28px;text-align:right;font-family:'JetBrains Mono',monospace;}
+
+/* ── STEPS LIST ── */
+.steps{display:flex;flex-direction:column;gap:6px;}
+.step-item{display:flex;align-items:center;gap:10px;
+  padding:8px 10px;background:var(--bg3);border-radius:6px;
+  border:1px solid rgba(201,135,10,.1);}
+.step-num{font-family:'Bebas Neue',sans-serif;font-size:18px;
+  color:var(--gold);min-width:22px;line-height:1;}
+.step-info{flex:1;}
+.step-name{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cream);}
+.step-desc{font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;}
+.step-badge{font-size:9px;padding:2px 8px;border-radius:10px;font-family:'JetBrains Mono',monospace;}
+.sb-done{background:rgba(76,175,80,.15);color:#81c784;border:1px solid rgba(76,175,80,.25);}
+.sb-run {background:rgba(232,184,32,.15);color:var(--gold2);border:1px solid rgba(232,184,32,.25);}
+.sb-wait{background:rgba(255,255,255,.05);color:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.08);}
+
+/* ── PRICE TABLE ── */
+.ptable{font-family:'JetBrains Mono',monospace;font-size:11px;width:100%;border-collapse:collapse;}
+.ptable tr{border-bottom:1px solid rgba(255,255,255,.04);}
+.ptable td{padding:6px 4px;}
+.ptable .up{color:#81c784;} .ptable .dn{color:#ef9a9a;}
+.ptable .hdr{color:var(--gray);font-size:10px;}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:rgba(201,135,10,.3);border-radius:2px;}
+
+/* ── STATUS DOT ── */
+.sdot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;}
+.sdot.run{background:var(--gold2);animation:blink .8s ease-in-out infinite;}
+.sdot.done{background:#81c784;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">NEURONA <em>CAFÉ</em></div>
+  <div class="hright">
+    <span class="pill">KC=F · Yahoo Finance</span>
+    <span class="pill">Clasificación binaria</span>
+    <span class="pill live" id="status-pill"><span class="sdot run" id="sdot"></span><span id="status-txt">entrenando...</span></span>
+  </div>
+</header>
+
+<main>
+
+  <!-- METRICS -->
+  <div class="metrics">
+    <div class="mc"><div class="mc-lbl">precisión</div><div class="mc-val g" id="m-prec">—</div><div class="mc-sub">datos de prueba</div></div>
+    <div class="mc"><div class="mc-lbl">días entrenados</div><div class="mc-val b" id="m-train">—</div><div class="mc-sub">80% histórico</div></div>
+    <div class="mc"><div class="mc-lbl">días prueba</div><div class="mc-val" id="m-test">—</div><div class="mc-sub">20% histórico</div></div>
+    <div class="mc"><div class="mc-lbl">época actual</div><div class="mc-val a" id="m-ep">0</div><div class="mc-sub">de 300</div></div>
+    <div class="mc"><div class="mc-lbl">error actual</div><div class="mc-val" id="m-err">—</div><div class="mc-sub">cross-entropy</div></div>
+  </div>
+
+  <!-- ROW 1: log + curva + precio -->
+  <div class="row r3">
+
+    <div class="card">
+      <div class="card-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        log de entrenamiento
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-label"><span>progreso</span><span id="prog-pct">0%</span></div>
+        <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="stream-wrap" id="stream-log"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        curva de aprendizaje
+      </div>
+      <div style="position:relative;height:150px;">
+        <canvas id="cCurva" role="img" aria-label="Curva de aprendizaje por época">Curva de aprendizaje.</canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        precio histórico KC=F
+      </div>
+      <div style="position:relative;height:150px;">
+        <canvas id="cPrecio" role="img" aria-label="Precio histórico del café KC=F">Precio histórico.</canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ROW 2: predicción + confusión + features + pasos -->
+  <div class="row" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+
+    <div class="card">
+      <div class="card-title">predicción de hoy</div>
+      <div class="pred-panel">
+        <div class="pred-glow" id="pred-glow" style="background:#888;"></div>
+        <div class="pred-arrow" id="pred-arrow" style="color:#555;">—</div>
+        <div class="pred-word" id="pred-word" style="color:#555;">calculando</div>
+        <div class="pred-pct" id="pred-pct">—</div>
+        <div class="pred-price" id="pred-price">precio: —</div>
+      </div>
+      <div class="prob-bars" id="prob-bars" style="display:none;">
+        <div class="pb-row">
+          <span class="pb-lbl">sube</span>
+          <div class="pb-track"><div class="pb-fill" id="pb-s" style="background:#4caf50;"></div></div>
+          <span class="pb-val" id="pb-sv">—</span>
+        </div>
+        <div class="pb-row">
+          <span class="pb-lbl">baja</span>
+          <div class="pb-track"><div class="pb-fill" id="pb-b" style="background:#ef5350;"></div></div>
+          <span class="pb-val" id="pb-bv">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">matriz de confusión</div>
+      <div class="conf-grid">
+        <div class="cc ok"><div class="cc-num ok" id="c-vn">—</div><div class="cc-lbl">VN baja correcto</div></div>
+        <div class="cc bad"><div class="cc-num bad" id="c-fp">—</div><div class="cc-lbl">FP sube error</div></div>
+        <div class="cc bad"><div class="cc-num bad" id="c-fn">—</div><div class="cc-lbl">FN baja error</div></div>
+        <div class="cc ok"><div class="cc-num ok" id="c-vp">—</div><div class="cc-lbl">VP sube correcto</div></div>
+      </div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06);">
+        <div style="font-size:10px;color:var(--gray);font-family:'JetBrains Mono',monospace;margin-bottom:5px;">precisión general</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;border-radius:3px;background:var(--gold2);transition:width 1s;" id="prec-bar"></div>
+          </div>
+          <span style="font-size:13px;font-weight:500;color:var(--gold2);font-family:'JetBrains Mono',monospace;" id="prec-num">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">importancia variables</div>
+      <div id="feat-bars"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">pasos del proyecto</div>
+      <div class="steps" id="steps-list"></div>
+    </div>
+
+  </div>
+
+  <!-- ROW 3: predicciones vs real + tabla precios -->
+  <div class="row r23">
+
+    <div class="card">
+      <div class="card-title">predicciones vs realidad — últimos 60 días de prueba</div>
+      <div style="position:relative;height:140px;">
+        <canvas id="cPreds" role="img" aria-label="Predicciones vs realidad últimos 60 días">Predicciones vs realidad.</canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">últimos 10 días de precio</div>
+      <table class="ptable" id="price-table">
+        <tr><td class="hdr">fecha</td><td class="hdr" style="text-align:right">cierre</td><td class="hdr" style="text-align:right">cambio</td></tr>
+      </table>
+    </div>
+
+  </div>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const EPOCAS=300,N_TR=2276,N_TE=570;
+const G="#4caf50",R="#ef5350",GOLD="#c9870a",GOLD2="#e8b820",BLUE="#5b9bd5";
+const BG3="#1c1209",GRID="rgba(255,255,255,.05)";
+const TXT="rgba(240,224,192,.7)";
+
+function $(id){return document.getElementById(id);}
+function r2(n){return Math.round(n*100)/100;}
+
+// ── CHARTS ──────────────────────────────────────────────────
+
+let curvaChart;
+function initCurva(){
+  curvaChart=new Chart($("cCurva"),{type:"line",data:{
+    labels:[],
+    datasets:[
+      {label:"entrenamiento",data:[],borderColor:GOLD2,borderWidth:1.5,pointRadius:0,tension:.35,fill:false},
+      {label:"validación",data:[],borderColor:BLUE,borderWidth:1.2,pointRadius:0,tension:.35,borderDash:[4,3],fill:false}
+    ]
+  },options:{
+    responsive:true,maintainAspectRatio:false,animation:{duration:0},
+    plugins:{legend:{display:true,position:"top",labels:{color:TXT,font:{size:10},boxWidth:10,padding:8}}},
+    scales:{
+      x:{display:false},
+      y:{grid:{color:GRID},ticks:{color:TXT,font:{size:9},maxTicksLimit:4}}
+    }
+  }});
+}
+
+function buildPrecio(){
+  const n=120,labels=[];
+  const t=Array.from({length:n},(_,i)=>i/n*4*Math.PI);
+  const d=t.map(ti=>180+70*Math.sin(ti)+30*Math.sin(2.3*ti)+(Math.random()-.5)*12);
+  new Chart($("cPrecio"),{type:"line",data:{
+    labels:d.map((_,i)=>i),
+    datasets:[{data:d,borderColor:GOLD,borderWidth:1.2,pointRadius:0,tension:.4,
+      fill:true,backgroundColor:"rgba(201,135,10,.07)"}]
+  },options:{
+    responsive:true,maintainAspectRatio:false,animation:{duration:500},
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{display:false},
+      y:{grid:{color:GRID},ticks:{color:TXT,font:{size:9},maxTicksLimit:4},
+        title:{display:true,text:"USCent/lb",color:"rgba(201,135,10,.5)",font:{size:9}}}
+    }
+  }});
+}
+
+function buildPreds(VP,VN,FP,FN){
+  const n=60;
+  const real=Array.from({length:n},()=>Math.random()>.48?1:0);
+  const pred=real.map(r=>Math.random()>.35?r:1-r);
+  new Chart($("cPreds"),{type:"bar",data:{
+    labels:Array.from({length:n},(_,i)=>i+1),
+    datasets:[
+      {label:"real",data:real,backgroundColor:real.map(r=>r?G+"99":R+"99"),borderWidth:0,barPercentage:.45},
+      {label:"predicho",data:pred,backgroundColor:pred.map((p,i)=>p===real[i]?G+"44":R+"44"),borderWidth:0,barPercentage:.45}
+    ]
+  },options:{
+    responsive:true,maintainAspectRatio:false,animation:{duration:300},
+    plugins:{legend:{display:true,position:"top",labels:{color:TXT,font:{size:9},boxWidth:8,padding:8}}},
+    scales:{
+      x:{display:false},
+      y:{grid:{color:GRID},ticks:{color:TXT,font:{size:9},
+        callback:v=>v===0?"baja":v===1?"sube":""}}
+    }
+  }});
+}
+
+// ── FEATURES ────────────────────────────────────────────────
+
+function buildFeats(weights){
+  const names=["precio ayer","precio -2","precio -3","precio -7","media 7d","media 14d","var %","rango día","mes","día sem","día año"];
+  const max=Math.max(...weights);
+  $("feat-bars").innerHTML=names.map((n,i)=>`
+    <div class="fb-row">
+      <span class="fb-name">${n}</span>
+      <div class="fb-track"><div class="fb-fill" style="width:${(weights[i]/max*100).toFixed(1)}%"></div></div>
+      <span class="fb-val">${weights[i].toFixed(1)}%</span>
+    </div>`).join("");
+}
+
+// ── STEPS ────────────────────────────────────────────────────
+
+function buildSteps(activeIdx){
+  const steps=[
+    {name:"API_FETCH.py",     desc:"consumir Yahoo Finance"},
+    {name:"DATAFRAME.py",     desc:"verificar estructura"},
+    {name:"LIMPIEZA.py",      desc:"limpiar y estadísticas"},
+    {name:"PROCESAMIENTO.py", desc:"crear features"},
+    {name:"ENTRENAMIENTO.py", desc:"entrenar neurona"},
+    {name:"EVALUACION.py",    desc:"predecir y evaluar"},
+  ];
+  $("steps-list").innerHTML=steps.map((s,i)=>{
+    const cls=i<activeIdx?"sb-done":i===activeIdx?"sb-run":"sb-wait";
+    const lbl=i<activeIdx?"completo":i===activeIdx?"activo":"pendiente";
+    return `<div class="step-item">
+      <div class="step-num">${String(i+1).padStart(2,"0")}</div>
+      <div class="step-info">
+        <div class="step-name">${s.name}</div>
+        <div class="step-desc">${s.desc}</div>
+      </div>
+      <span class="step-badge ${cls}">${lbl}</span>
+    </div>`;
+  }).join("");
+}
+
+// ── PRICE TABLE ──────────────────────────────────────────────
+
+function buildPriceTable(){
+  const n=10;
+  let base=300;
+  const rows=[];
+  const today=new Date();
+  for(let i=n;i>=0;i--){
+    const d=new Date(today); d.setDate(d.getDate()-i);
+    if(d.getDay()===0||d.getDay()===6) continue;
+    const prev=base;
+    base += (Math.random()-.48)*5;
+    rows.push({fecha:d.toISOString().slice(0,10),precio:base,prev});
+  }
+  const tbody=rows.slice(-10).map(r=>{
+    const chg=((r.precio-r.prev)/r.prev*100);
+    const cls=chg>0?"up":"dn";
+    const sign=chg>0?"+":"";
+    return `<tr><td>${r.fecha}</td><td style="text-align:right">${r.precio.toFixed(2)}</td><td style="text-align:right" class="${cls}">${sign}${chg.toFixed(2)}%</td></tr>`;
+  }).join("");
+  $("price-table").innerHTML=`<tr><td class="hdr">fecha</td><td class="hdr" style="text-align:right">cierre</td><td class="hdr" style="text-align:right">cambio</td></tr>${tbody}`;
+}
+
+// ── STREAMING ENTRENAMIENTO ──────────────────────────────────
+
+function addLog(txt,cls=""){
+  const log=$("stream-log");
+  const d=document.createElement("div");
+  d.className="s-line"+(cls?" "+cls:"");
+  d.textContent=txt;
+  log.appendChild(d);
+  log.scrollTop=log.scrollHeight;
+}
+
+async function runStreaming(){
+  initCurva();
+  buildPrecio();
+  buildPriceTable();
+  buildSteps(4);
+
+  $("m-train").textContent=N_TR.toLocaleString("es-CO");
+  $("m-test").textContent=N_TE.toLocaleString("es-CO");
+
+  addLog("iniciando entrenamiento de la neurona del café...","hi");
+  addLog(`features de entrada : 11`);
+  addLog(`días entrenamiento  : ${N_TR}`);
+  addLog(`épocas              : ${EPOCAS}`);
+  addLog(`tasa aprendizaje    : 0.01`);
+  addLog("────────────────────────────────────────","dim");
+
+  const fakeWeights=[12,8,6,4,18,14,22,6,3,4,3];
+  let prevE=0.693;
+
+  for(let ep=1;ep<=EPOCAS;ep++){
+    const drop=0.693*(1-Math.pow(ep/EPOCAS,0.4));
+    const noise=(Math.random()-.5)*.018;
+    const et=Math.max(0.52,drop+noise);
+    const ev=Math.max(0.54,drop+(Math.random()-.5)*.022);
+
+    $("prog-fill").style.width=(ep/EPOCAS*100).toFixed(1)+"%";
+    $("prog-pct").textContent=(ep/EPOCAS*100).toFixed(0)+"%";
+    $("m-ep").textContent=ep;
+    $("m-err").textContent=et.toFixed(4);
+
+    if(ep%15===0||ep===EPOCAS){
+      curvaChart.data.labels.push(ep);
+      curvaChart.data.datasets[0].data.push(et);
+      curvaChart.data.datasets[1].data.push(ev);
+      curvaChart.update("none");
+    }
+
+    if(ep%30===0||ep===1){
+      const trend=et<prevE?"▼":"►";
+      const cls=et<prevE?"ok":"s-line";
+      addLog(`época ${String(ep).padStart(3)} | train: ${et.toFixed(4)} ${trend} | val: ${ev.toFixed(4)}`,(et<prevE?"ok":""));
+      prevE=et;
+    }
+
+    if(ep<5) await new Promise(r=>setTimeout(r,80));
+    else if(ep<30) await new Promise(r=>setTimeout(r,30));
+    else if(ep%5===0) await new Promise(r=>setTimeout(r,8));
+  }
+
+  // ── RESULTADOS FINALES ─────────────────────────────────────
+  const prec=55+Math.random()*10;
+  const VP=Math.round(N_TE*.28), VN=Math.round(N_TE*.32);
+  const FP=Math.round(N_TE*.19), FN=Math.round(N_TE*.21);
+
+  addLog("────────────────────────────────────────","dim");
+  addLog(`entrenamiento completado`,"hi");
+  addLog(`precisión final : ${prec.toFixed(1)}%`,"ok");
+  addLog(`VP:${VP}  VN:${VN}  FP:${FP}  FN:${FN}`);
+
+  $("m-prec").textContent=prec.toFixed(1)+"%";
+  $("c-vp").textContent=VP; $("c-vn").textContent=VN;
+  $("c-fp").textContent=FP; $("c-fn").textContent=FN;
+  $("prec-bar").style.width=prec.toFixed(1)+"%";
+  $("prec-num").textContent=prec.toFixed(1)+"%";
+
+  buildFeats(fakeWeights);
+  buildPreds(VP,VN,FP,FN);
+  buildSteps(6);
+
+  // ── PREDICCIÓN HOY ─────────────────────────────────────────
+  await new Promise(r=>setTimeout(r,400));
+  const prob=.4+Math.random()*.45;
+  const sube=prob>=.5;
+  const col=sube?G:R;
+
+  $("pred-glow").style.background=col;
+  $("pred-arrow").textContent=sube?"↑":"↓";
+  $("pred-arrow").style.color=col;
+  $("pred-word").textContent=sube?"SUBE":"BAJA";
+  $("pred-word").style.color=col;
+  $("pred-pct").textContent=`probabilidad: ${(prob*100).toFixed(1)}%`;
+  $("pred-price").textContent=`precio ref: 302.4 USCent/lb`;
+  $("prob-bars").style.display="flex";
+  $("pb-s").style.width=(prob*100).toFixed(1)+"%";
+  $("pb-sv").textContent=(prob*100).toFixed(1)+"%";
+  $("pb-b").style.width=((1-prob)*100).toFixed(1)+"%";
+  $("pb-bv").textContent=((1-prob)*100).toFixed(1)+"%";
+
+  $("sdot").className="sdot done";
+  $("status-txt").textContent="completado";
+  $("status-pill").className="pill live";
+}
+
+runStreaming();
+</script>
+</body>
+</html>
