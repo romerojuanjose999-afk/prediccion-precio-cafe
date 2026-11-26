@@ -27,8 +27,8 @@ Yahoo Finance (KC=F, 2015 → hoy)
 ## Cómo ejecutar
 
 ```bash
-git clone https://github.com/romerojuanjose999-afk/neurona-predicci-n-de-caf-.git
-cd neurona-predicci-n-de-caf-
+git clone https://github.com/romerojuanjose999-afk/prediccion-precio-cafe.git
+cd prediccion-precio-cafe
 pip install -r requirements.txt
 
 python API_FETCH.py
